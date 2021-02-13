@@ -1,20 +1,9 @@
-#@title Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-# https://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 import tensorflow as tf
 
 from tensorflow.keras.layers import Dense, Flatten, Conv2D
 from tensorflow.keras import Model
 
+# Load and prepare the MNIST dataset.
 mnist = tf.keras.datasets.mnist
 
 (x_train, y_train), (x_test, y_test) = mnist.load_data()
@@ -24,12 +13,13 @@ x_train, x_test = x_train / 255.0, x_test / 255.0
 x_train = x_train[..., tf.newaxis].astype("float32")
 x_test = x_test[..., tf.newaxis].astype("float32")
 
-
+# Use tf.data to batch and shuffle the dataset
 train_ds = tf.data.Dataset.from_tensor_slices(
     (x_train, y_train)).shuffle(10000).batch(32)
 
 test_ds = tf.data.Dataset.from_tensor_slices((x_test, y_test)).batch(32)
 
+# Build the tf.keras model using the Keras model subclassing API
 class MyModel(Model):
   def __init__(self):
     super(MyModel, self).__init__()
@@ -47,16 +37,20 @@ class MyModel(Model):
 # Create an instance of the model
 model = MyModel()
 
+# Choose an optimizer and loss function for training
 loss_object = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
 
 optimizer = tf.keras.optimizers.Adam()
 
+# Select metrics to measure the loss and the accuracy of the model. 
+# These metrics accumulate the values over epochs and then print the overall result.
 train_loss = tf.keras.metrics.Mean(name='train_loss')
 train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='train_accuracy')
 
 test_loss = tf.keras.metrics.Mean(name='test_loss')
 test_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='test_accuracy')
 
+# Use tf.GradientTape to train the model
 @tf.function
 def train_step(images, labels):
   with tf.GradientTape() as tape:
@@ -70,7 +64,7 @@ def train_step(images, labels):
   train_loss(loss)
   train_accuracy(labels, predictions)
 
-
+# Test the model
 @tf.function
 def test_step(images, labels):
   # training=False is only needed if there are layers with different
@@ -103,3 +97,5 @@ for epoch in range(EPOCHS):
     f'Test Loss: {test_loss.result()}, '
     f'Test Accuracy: {test_accuracy.result() * 100}'
   )
+
+  # The image classifier is now trained to ~98% accuracy on this dataset.
